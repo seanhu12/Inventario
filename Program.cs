@@ -29,23 +29,7 @@ namespace Inventario
                                      autoDelete: false,
                                      arguments: null);
 
-                var timer = new System.Timers.Timer();
-                timer.Interval = 5000; // Intervalo de tiempo en milisegundos (ejemplo: 5000 ms = 5 segundos)
-                timer.Elapsed += (sender, e) =>
-                {
-                    var productosDisponibles = ObtenerProductosDisponibles();
-
-                    var message = JsonConvert.SerializeObject(productosDisponibles);
-                    var body = Encoding.UTF8.GetBytes(message);
-
-                    channel.BasicPublish(exchange: "",
-                                         routingKey: "productos_disponibles",
-                                         basicProperties: null,
-                                         body: body);
-
-                    Console.WriteLine("Listado de productos disponibles enviado a Caja.");
-                };
-                timer.Start();
+                EnviarProductosDisponibles(channel);
 
                 var productosSeleccionadosConsumer = new EventingBasicConsumer(channel);
                 productosSeleccionadosConsumer.Received += (model, ea) =>
@@ -63,11 +47,30 @@ namespace Inventario
                                      autoAck: true,
                                      consumer: productosSeleccionadosConsumer);
 
-                Console.WriteLine("Presiona Enter para cerrar la aplicación...");
-                Console.ReadLine();
+                MostrarMenu(channel);
             }
         }
 
+        static void EnviarProductosDisponibles(IModel channel)
+        {
+            var timer = new System.Timers.Timer();  // Cambio aquí
+            timer.Interval = 5000; 
+            timer.Elapsed += (sender, e) =>
+            {
+                var productosDisponibles = ObtenerProductosDisponibles();
+
+                var message = JsonConvert.SerializeObject(productosDisponibles);
+                var body = Encoding.UTF8.GetBytes(message);
+
+                channel.BasicPublish(exchange: "",
+                                     routingKey: "productos_disponibles",
+                                     basicProperties: null,
+                                     body: body);
+
+                
+            };
+            timer.Start();
+        }
         static List<Producto> ObtenerProductosDisponibles()
         {
             var connectionString = "server=localhost;user=root;password=;database=Inventario";
@@ -102,11 +105,607 @@ namespace Inventario
 
             return productosDisponibles;
         }
+
+        static void AgregarProducto(IModel channel)
+        {
+            Console.WriteLine("Ingrese el nombre del producto:");
+            var nombre = Console.ReadLine();
+
+            Console.WriteLine("Ingrese el precio del producto:");
+            var precioStr = Console.ReadLine();
+            int precio;
+            if (!int.TryParse(precioStr, out precio))
+            {
+                Console.WriteLine("El precio ingresado no es válido.");
+                return;
+            }
+            Console.WriteLine("Categoria id");
+            var categoria = Console.ReadLine();
+            
+
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
+
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+
+                var query = "INSERT INTO Producto (nombre, precio , Categoriaid) VALUES (@nombre, @precio, @categoria)";
+
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@nombre", nombre);
+                    command.Parameters.AddWithValue("@precio", precio);
+                    command.Parameters.AddWithValue("@categoria", categoria);
+                    command.ExecuteNonQuery();
+
+                    Console.WriteLine("Producto agregado correctamente.");
+                }
+            }
+
+            EnviarProductosDisponibles(channel);
+            MostrarMenu(channel);
+        }
+
+        static void ActualizarProducto(IModel channel)
+        {
+            Console.WriteLine("Ingrese el ID del producto a actualizar:");
+            var idStr = Console.ReadLine();
+            int id;
+            if (!int.TryParse(idStr, out id))
+            {
+                Console.WriteLine("El ID ingresado no es válido.");
+                return;
+            }
+
+            Console.WriteLine("Ingrese el nuevo nombre del producto:");
+            var nuevoNombre = Console.ReadLine();
+
+            Console.WriteLine("Ingrese el nuevo precio del producto:");
+            var nuevoPrecioStr = Console.ReadLine();
+            int nuevoPrecio;
+            if (!int.TryParse(nuevoPrecioStr, out nuevoPrecio))
+            {
+                Console.WriteLine("El nuevo precio ingresado no es válido.");
+                return;
+            }
+
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
+
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+
+                var query = "UPDATE Producto SET nombre = @nuevoNombre, precio = @nuevoPrecio WHERE id = @productoId";
+
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@nuevoNombre", nuevoNombre);
+                    command.Parameters.AddWithValue("@nuevoPrecio", nuevoPrecio);
+                    command.Parameters.AddWithValue("@productoId", id);
+                    command.ExecuteNonQuery();
+
+                    Console.WriteLine("Producto actualizado correctamente.");
+                }
+            }
+
+            EnviarProductosDisponibles(channel);
+            MostrarMenu(channel);
+        }
+
+        static void AgregarSucursal(IModel channel)
+{
+    Console.WriteLine("Ingrese el nombre de la sucursal:");
+    var nombre = Console.ReadLine();
+
+    var connectionString = "server=localhost;user=root;password=;database=Inventario";
+
+    using (var connection = new MySqlConnection(connectionString))
+    {
+        connection.Open();
+
+        var query = "INSERT INTO Sucursal (nombre) VALUES (@nombre)";
+
+        using (var command = new MySqlCommand(query, connection))
+        {
+            command.Parameters.AddWithValue("@nombre", nombre);
+            command.ExecuteNonQuery();
+
+            Console.WriteLine("Sucursal agregada correctamente.");
+        }
     }
 
-    class Producto
+    EnviarProductosDisponibles(channel);
+    MostrarMenu(channel);
+}
+
+        static void ActualizarSucursal(IModel channel)
+        {
+            Console.WriteLine("Ingrese el ID de la sucursal a actualizar:");
+            var idStr = Console.ReadLine();
+            int id;
+            if (!int.TryParse(idStr, out id))
+            {
+                Console.WriteLine("El ID ingresado no es válido.");
+                return;
+            }
+
+            Console.WriteLine("Ingrese el nuevo nombre de la sucursal:");
+            var nuevoNombre = Console.ReadLine();
+
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
+
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+
+                var query = "UPDATE Sucursal SET nombre = @nuevoNombre WHERE id = @sucursalId";
+
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@nuevoNombre", nuevoNombre);
+                    command.Parameters.AddWithValue("@sucursalId", id);
+                    command.ExecuteNonQuery();
+
+                    Console.WriteLine("Sucursal actualizada correctamente.");
+                }
+            }
+
+            EnviarProductosDisponibles(channel);
+            MostrarMenu(channel);
+        }
+
+        static void AgregarCategoria(IModel channel)
     {
-        public string Nombre { get; set; }
-        public int Precio { get; set; }
+        Console.WriteLine("Ingrese el nombre de la categoría:");
+        var nombre = Console.ReadLine();
+
+        var connectionString = "server=localhost;user=root;password=;database=Inventario";
+
+        using (var connection = new MySqlConnection(connectionString))
+        {
+            connection.Open();
+
+            var query = "INSERT INTO Categoria (nombre) VALUES (@nombre)";
+
+            using (var command = new MySqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@nombre", nombre);
+                command.ExecuteNonQuery();
+
+                Console.WriteLine("Categoría agregada correctamente.");
+            }
+        }
+
+        EnviarProductosDisponibles(channel);
+        MostrarMenu(channel);
     }
+
+        static void ActualizarCategoria(IModel channel)
+        {
+            Console.WriteLine("Ingrese el ID de la categoría a actualizar:");
+            var idStr = Console.ReadLine();
+            int id;
+            if (!int.TryParse(idStr, out id))
+            {
+                Console.WriteLine("El ID ingresado no es válido.");
+                return;
+            }
+
+            Console.WriteLine("Ingrese el nuevo nombre de la categoría:");
+            var nuevoNombre = Console.ReadLine();
+
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
+
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+
+                var query = "UPDATE Categoria SET nombre = @nuevoNombre WHERE id = @categoriaId";
+
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@nuevoNombre", nuevoNombre);
+                    command.Parameters.AddWithValue("@categoriaId", id);
+                    command.ExecuteNonQuery();
+
+                    Console.WriteLine("Categoría actualizada correctamente.");
+                }
+            }
+
+            EnviarProductosDisponibles(channel);
+            MostrarMenu(channel);
+        }
+
+        // Agregar y actualizar Caja
+        static void AgregarCaja(IModel channel)
+        {
+            Console.WriteLine("Ingrese el número de la caja:");
+            var numeroStr = Console.ReadLine();
+            int numero;
+            if (!int.TryParse(numeroStr, out numero))
+            {
+                Console.WriteLine("El número ingresado no es válido.");
+                return;
+            }
+
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
+
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+
+                var query = "INSERT INTO Caja (numero) VALUES (@numero)";
+
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@numero", numero);
+                    command.ExecuteNonQuery();
+
+                    Console.WriteLine("Caja agregada correctamente.");
+                }
+            }
+
+            EnviarProductosDisponibles(channel);
+            MostrarMenu(channel);
+        }
+
+        static void ActualizarCaja(IModel channel)
+    {
+        Console.WriteLine("Ingrese el ID de la caja a actualizar:");
+        var idStr = Console.ReadLine();
+        int id;
+        if (!int.TryParse(idStr, out id))
+        {
+            Console.WriteLine("El ID ingresado no es válido.");
+            return;
+        }
+
+        Console.WriteLine("Ingrese el nuevo número de la caja:");
+        var nuevoNumeroStr = Console.ReadLine();
+        int nuevoNumero;
+        if (!int.TryParse(nuevoNumeroStr, out nuevoNumero))
+        {
+            Console.WriteLine("El nuevo número ingresado no es válido.");
+            return;
+        }
+
+        var connectionString = "server=localhost;user=root;password=;database=Inventario";
+
+        using (var connection = new MySqlConnection(connectionString))
+        {
+            connection.Open();
+
+            var query = "UPDATE Caja SET numero = @nuevoNumero WHERE id = @cajaId";
+
+            using (var command = new MySqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@nuevoNumero", nuevoNumero);
+                command.Parameters.AddWithValue("@cajaId", id);
+                command.ExecuteNonQuery();
+
+                Console.WriteLine("Caja actualizada correctamente.");
+            }
+        }
+
+        EnviarProductosDisponibles(channel);
+        MostrarMenu(channel);
+    }  
+        
+        // Agregar producto a una sucursal
+        static void AgregarProductoASucursal(IModel channel)
+        {
+            Console.WriteLine("Productos disponibles:");
+            var productosDisponibles = ObtenerProductosDisponibles();
+            foreach (var producto in productosDisponibles)
+            {
+                Console.WriteLine($"ID: {producto.Id}, Nombre: {producto.Nombre}, Precio: {producto.Precio}");
+            }
+
+            Console.WriteLine("Ingrese el ID del producto a agregar:");
+            var productoIdStr = Console.ReadLine();
+            int productoId;
+            if (!int.TryParse(productoIdStr, out productoId))
+            {
+                Console.WriteLine("El ID del producto ingresado no es válido.");
+                return;
+            }
+
+            Console.WriteLine("Ingrese el ID de la sucursal:");
+            var sucursalIdStr = Console.ReadLine();
+            int sucursalId;
+            if (!int.TryParse(sucursalIdStr, out sucursalId))
+            {
+                Console.WriteLine("El ID de la sucursal ingresado no es válido.");
+                return;
+            }
+
+            Console.WriteLine("Ingrese la cantidad de stock del producto:");
+            var stockStr = Console.ReadLine();
+            int stock;
+            if (!int.TryParse(stockStr, out stock))
+            {
+                Console.WriteLine("La cantidad de stock ingresada no es válida.");
+                return;
+            }
+
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
+
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+
+                var query = "INSERT INTO Producto_Sucursal (Productoid, Sucursalid, stock) VALUES (@productoId, @sucursalId, @stock)";
+
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@productoId", productoId);
+                    command.Parameters.AddWithValue("@sucursalId", sucursalId);
+                    command.Parameters.AddWithValue("@stock", stock);
+                    command.ExecuteNonQuery();
+
+                    Console.WriteLine("Producto agregado a la sucursal correctamente.");
+                }
+            }
+
+            EnviarProductosDisponibles(channel);
+            MostrarMenu(channel);
+        }
+
+        static List<Producto> ObtenerProductosDeSucursal(int sucursalId)
+        {
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
+            var productosEnSucursal = new List<Producto>();
+
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+
+                var query = "SELECT Producto.id, Producto.nombre, Producto.precio FROM Producto INNER JOIN Producto_Sucursal ON Producto.id = Producto_Sucursal.Productoid WHERE Producto_Sucursal.Sucursalid = @sucursalId";
+
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@sucursalId", sucursalId);
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var id = reader.GetInt32("id");
+                            var nombreProducto = reader.GetString("nombre");
+                            var precio = reader.GetInt32("precio");
+
+                            var producto = new Producto
+                            {
+                                Id = id,
+                                Nombre = nombreProducto,
+                                Precio = precio
+                            };
+
+                            productosEnSucursal.Add(producto);
+                        }
+                    }
+                }
+            }
+
+            return productosEnSucursal;
+        }
+
+        // Eliminar producto de una sucursal
+        static void EliminarProductoDeSucursal(IModel channel)
+        {
+            Console.WriteLine("Ingrese el ID de la sucursal:");
+            var sucursalIdStr = Console.ReadLine();
+            int sucursalId;
+            if (!int.TryParse(sucursalIdStr, out sucursalId))
+            {
+                Console.WriteLine("El ID de la sucursal ingresado no es válido.");
+                return;
+            }
+
+            Console.WriteLine("Productos en la sucursal:");
+            var productosEnSucursal = ObtenerProductosDeSucursal(sucursalId);
+            foreach (var producto in productosEnSucursal)
+            {
+                Console.WriteLine($"ID: {producto.Id}, Nombre: {producto.Nombre}, Precio: {producto.Precio}");
+            }
+
+            Console.WriteLine("Ingrese el ID del producto a eliminar:");
+            var productoIdStr = Console.ReadLine();
+            int productoId;
+            if (!int.TryParse(productoIdStr, out productoId))
+            {
+                Console.WriteLine("El ID del producto ingresado no es válido.");
+                return;
+            }
+
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
+
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+
+                var query = "DELETE FROM Producto_Sucursal WHERE Productoid = @productoId AND Sucursalid = @sucursalId";
+
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@productoId", productoId);
+                    command.Parameters.AddWithValue("@sucursalId", sucursalId);
+                    command.ExecuteNonQuery();
+
+                    Console.WriteLine("Producto eliminado de la sucursal correctamente.");
+                }
+            }
+
+            EnviarProductosDisponibles(channel);
+            MostrarMenu(channel);
+        }
+   
+        // Actualizar stock de un producto en una sucursal
+       // Actualizar stock de un producto en una sucursal
+        static void ActualizarStockASucursal(IModel channel)
+        {
+            Console.WriteLine("Ingrese el ID de la sucursal:");
+            var sucursalIdStr = Console.ReadLine();
+            int sucursalId;
+            if (!int.TryParse(sucursalIdStr, out sucursalId))
+            {
+                Console.WriteLine("El ID de la sucursal ingresado no es válido.");
+                return;
+            }
+
+            // Muestra los productos y su stock en la sucursal seleccionada
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+                var query = "SELECT Producto.nombre, Producto_Sucursal.stock FROM Producto INNER JOIN Producto_Sucursal ON Producto.id = Producto_Sucursal.Productoid WHERE Producto_Sucursal.Sucursalid = @sucursalId";
+
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@sucursalId", sucursalId);
+                    using (var reader = command.ExecuteReader())
+                    {
+                        Console.WriteLine("Productos en la sucursal:");
+                        while (reader.Read())
+                        {
+                            var nombreProducto = reader.GetString("nombre");
+                            var stock = reader.GetInt32("stock");
+                            Console.WriteLine($"Nombre: {nombreProducto}, Stock: {stock}");
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine("Ingrese el nombre del producto al que desea actualizar el stock:");
+            var nombreProductoStr = Console.ReadLine();
+
+            Console.WriteLine("Ingrese la cantidad que desea agregar o quitar al stock (use números negativos para quitar):");
+            var cantidadStr = Console.ReadLine();
+            int cantidad;
+            if (!int.TryParse(cantidadStr, out cantidad))
+            {
+                Console.WriteLine("La cantidad ingresada no es válida.");
+                return;
+            }
+
+            // Actualiza el stock del producto en la sucursal
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+
+                var query = "UPDATE Producto_Sucursal INNER JOIN Producto ON Producto.id = Producto_Sucursal.Productoid SET Producto_Sucursal.stock = Producto_Sucursal.stock + @cantidad WHERE Producto.nombre = @nombreProducto AND Producto_Sucursal.Sucursalid = @sucursalId";
+
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@nombreProducto", nombreProductoStr);
+                    command.Parameters.AddWithValue("@cantidad", cantidad);
+                    command.Parameters.AddWithValue("@sucursalId", sucursalId);
+                    command.ExecuteNonQuery();
+
+                    Console.WriteLine("Stock actualizado correctamente.");
+                }
+            }
+
+            EnviarProductosDisponibles(channel);
+            MostrarMenu(channel);
+        }
+
+        static void MostrarMenu(IModel channel)
+        {
+            
+            Console.WriteLine("==== Menú ====");
+            Console.WriteLine("1. Agregar un producto");
+            Console.WriteLine("2. Actualizar un producto");
+            Console.WriteLine("3. Agregar una Sucursal");
+            Console.WriteLine("4. Actualizar una Sucursal");
+            Console.WriteLine("5. Agregar una Categoria");
+            Console.WriteLine("6. Actualizar una Categoria");
+            Console.WriteLine("7. Agregar una Caja");
+            Console.WriteLine("8. Actualizar una Caja");
+            Console.WriteLine("9. Agregar O Eliminar stock");   
+            Console.WriteLine("10. Salir");
+
+            Console.WriteLine("Ingrese el número de la opción deseada:");
+            var opcionStr = Console.ReadLine();
+            int opcion;
+            if (!int.TryParse(opcionStr, out opcion))
+            {
+                Console.WriteLine("Opción no válida.");
+                MostrarMenu(channel);
+                return;
+            }
+
+            switch (opcion)
+            {
+                case 1:
+                    AgregarProducto(channel);
+                    break;
+                case 2:
+                    ActualizarProducto(channel);
+                    break;
+                case 3:
+                    AgregarSucursal(channel);
+                    break;    
+                case 4:
+                    ActualizarSucursal(channel);
+                    break;    
+                case 5:
+                    AgregarCategoria(channel);
+                    break; 
+                case 6:
+                    ActualizarCategoria(channel);
+                    break;
+                case 7:
+                    AgregarCaja(channel);
+                    break;
+                case 8:
+                    ActualizarCaja(channel);
+                    break;
+                case 9:
+                    Console.WriteLine("1) Desea Agregar ");
+                    Console.WriteLine("2) Actualizar ");
+                    Console.WriteLine("3) Eliminar ");
+                    Console.WriteLine("4) Salir ");
+                    var resp = Console.ReadLine();
+                    int opcion2;
+                    if (!int.TryParse(resp, out opcion2))
+                    {
+                        Console.WriteLine("Opción no válida.");
+                        MostrarMenu(channel);
+                        return;
+                    }
+                    switch (opcion2) 
+                    {
+                        case 1:
+                          AgregarProductoASucursal(channel);
+                            break;
+                          
+                        case 2: 
+                            ActualizarStockASucursal(channel);
+                            break;
+                        case 3:
+                            EliminarProductoDeSucursal(channel);
+                            MostrarMenu(channel);
+                            break;
+                        case 4:
+                            Console.WriteLine("Gracias por su preferencia");
+                            MostrarMenu(channel);
+                            break;
+                        default:
+                            Console.WriteLine("Opción no válida.");
+                            MostrarMenu(channel);
+                            break;
+
+                    }
+                    break;                        
+                case 10:
+                    Console.WriteLine("Gracias por su preferencia");
+                    break;
+                default:
+                    Console.WriteLine("Opción no válida.");
+                    break;
+            }
+        }
+    }
+
+
 }
