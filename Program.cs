@@ -5,6 +5,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Newtonsoft.Json;
 using MySql.Data.MySqlClient;
+using System.Timers;
 
 namespace Inventario
 {
@@ -28,17 +29,23 @@ namespace Inventario
                                      autoDelete: false,
                                      arguments: null);
 
-                var productosDisponibles = ObtenerProductosDisponibles();
+                var timer = new System.Timers.Timer();
+                timer.Interval = 5000; // Intervalo de tiempo en milisegundos (ejemplo: 5000 ms = 5 segundos)
+                timer.Elapsed += (sender, e) =>
+                {
+                    var productosDisponibles = ObtenerProductosDisponibles();
 
-                var message = JsonConvert.SerializeObject(productosDisponibles);
-                var body = Encoding.UTF8.GetBytes(message);
+                    var message = JsonConvert.SerializeObject(productosDisponibles);
+                    var body = Encoding.UTF8.GetBytes(message);
 
-                channel.BasicPublish(exchange: "",
-                                     routingKey: "productos_disponibles",
-                                     basicProperties: null,
-                                     body: body);
+                    channel.BasicPublish(exchange: "",
+                                         routingKey: "productos_disponibles",
+                                         basicProperties: null,
+                                         body: body);
 
-                Console.WriteLine("Listado de productos disponibles enviado a Caja.");
+                    Console.WriteLine("Listado de productos disponibles enviado a Caja.");
+                };
+                timer.Start();
 
                 var productosSeleccionadosConsumer = new EventingBasicConsumer(channel);
                 productosSeleccionadosConsumer.Received += (model, ea) =>
