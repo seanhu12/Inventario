@@ -31,21 +31,19 @@ namespace Inventario
 
                 EnviarProductosDisponibles(channel);
 
-                var productosSeleccionadosConsumer = new EventingBasicConsumer(channel);
+                 var productosSeleccionadosConsumer = new EventingBasicConsumer(channel);
                 productosSeleccionadosConsumer.Received += (model, ea) =>
-                {
-                    var message = Encoding.UTF8.GetString(ea.Body.ToArray());
-                    var productosSeleccionados = JsonConvert.DeserializeObject<List<Producto>>(message);
-                    Console.WriteLine("Productos seleccionados recibidos:");
-                    foreach (var producto in productosSeleccionados)
-                    {
-                        Console.WriteLine($"Nombre: {producto.Nombre}, Precio: {producto.Precio}");
-                    }
-                };
+                                {
+                                    var message = Encoding.UTF8.GetString(ea.Body.ToArray());
+                                    var compra = JsonConvert.DeserializeObject<Compra>(message);
+                                    
+                                    GuardarCompra(channel,compra);
+                                };
 
-                channel.BasicConsume(queue: "productos_seleccionados",
-                                     autoAck: true,
-                                     consumer: productosSeleccionadosConsumer);
+                                channel.BasicConsume(queue: "productos_seleccionados",
+                                                    autoAck: true,
+                                                    consumer: productosSeleccionadosConsumer);
+
 
                 MostrarMenu(channel);
             }
@@ -609,6 +607,74 @@ namespace Inventario
             MostrarMenu(channel);
         }
 
+        static void GuardarCompra(IModel channel, Compra compra)
+        {
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
+            Console.WriteLine("eNTRA");
+
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+
+                var query = "INSERT INTO venta (correlativo, fecha, total, Cajaid, Sucursalid) VALUES (@correl, @fecha, @total, @caja, @sucursal )";
+
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@correl", 2);
+                    command.Parameters.AddWithValue("@fecha", compra.Fecha);
+                    command.Parameters.AddWithValue("@total", compra.Total);
+                    command.Parameters.AddWithValue("@caja", 1);
+                    command.Parameters.AddWithValue("@sucursal", compra.Sucursal);
+                    command.ExecuteNonQuery();
+
+                    Console.WriteLine("Venta agregada correctamente.");
+                }
+
+
+                foreach (var producto in compra.Productos)
+                {
+                    int idProd = ObtenerIdProducto(producto.Key);
+
+                    var detalleQuery = "INSERT INTO detalle (VentaId, Productoid, Cantidad) VALUES (LAST_INSERT_ID(), @producto, @cantidad)";
+                    
+                    using (var detalleCommand = new MySqlCommand(detalleQuery, connection))
+                    {
+                        detalleCommand.Parameters.AddWithValue("@producto", idProd);
+                        detalleCommand.Parameters.AddWithValue("@cantidad", producto.Value);
+                        detalleCommand.ExecuteNonQuery();
+                    }
+                }
+
+                Console.WriteLine("Productos de la venta agregados correctamente.");
+            }
+
+            // Aquí puedes llamar a cualquier función que necesites ejecutar después de guardar la compra.
+        }
+        
+       static int ObtenerIdProducto(string nombreProducto)
+        {
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+                var query = "SELECT id FROM Producto WHERE nombre = @nombreProducto";
+
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@nombreProducto", nombreProducto);
+                    var result = command.ExecuteScalar();
+                    if(result != null)
+                    {
+                        return Convert.ToInt32(result);
+                    }
+                    else
+                    {
+                        throw new Exception("Producto no encontrado en la base de datos.");
+                    }
+                }
+            }
+        }
+
         static void MostrarMenu(IModel channel)
         {
             
@@ -708,4 +774,13 @@ namespace Inventario
     }
 
 
+
+}
+
+class Compra
+{
+    public string Sucursal { get; set; }
+    public DateTime Fecha { get; set; }
+    public Dictionary<string, int> Productos { get; set; }
+     public int Total { get; set; }
 }
