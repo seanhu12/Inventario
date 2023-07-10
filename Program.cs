@@ -17,45 +17,45 @@ namespace Inventario
 {
     class Program
     {
-        static async Task Main(string[] args)
+            static async Task Main(string[] args)
         {
-            gRPC().Wait();
             var factory = new ConnectionFactory() { HostName = "localhost" }; // Cambia el valor si RabbitMQ no se encuentra en localhost
             using (var connection = factory.CreateConnection())
             using (var channel = connection.CreateModel())
             {
                 channel.QueueDeclare(queue: "productos_disponibles",
-                                     durable: false,
-                                     exclusive: false,
-                                     autoDelete: false,
-                                     arguments: null);
+                                    durable: false,
+                                    exclusive: false,
+                                    autoDelete: false,
+                                    arguments: null);
 
                 channel.QueueDeclare(queue: "productos_seleccionados",
-                                     durable: false,
-                                     exclusive: false,
-                                     autoDelete: false,
-                                     arguments: null);
+                                    durable: false,
+                                    exclusive: false,
+                                    autoDelete: false,
+                                    arguments: null);
 
                 EnviarProductosDisponibles(channel);
 
-                 var productosSeleccionadosConsumer = new EventingBasicConsumer(channel);
+                var productosSeleccionadosConsumer = new EventingBasicConsumer(channel);
                 productosSeleccionadosConsumer.Received += (model, ea) =>
-                                {
-                                    var message = Encoding.UTF8.GetString(ea.Body.ToArray());
-                                    var compra = JsonConvert.DeserializeObject<Compra>(message);
-                                    
-                                    GuardarCompra(channel,compra);
-                                };
+                            {
+                                var message = Encoding.UTF8.GetString(ea.Body.ToArray());
+                                var compra = JsonConvert.DeserializeObject<Compra>(message);
+                                 
+                                GuardarCompra(channel,compra);
+                            };
 
-                                channel.BasicConsume(queue: "productos_seleccionados",
-                                                    autoAck: true,
-                                                    consumer: productosSeleccionadosConsumer);
-
+                            channel.BasicConsume(queue: "productos_seleccionados",
+                                                autoAck: true,
+                                                consumer: productosSeleccionadosConsumer);
 
                 MostrarMenu(channel);
             }
-        }
 
+    // Llama a la función gRPC al final para que no bloquee el resto del código
+    await gRPC();
+}
         static async Task gRPC()
         {
             // The port number must match the port of the gRPC server.
@@ -63,15 +63,14 @@ namespace Inventario
             var client = new InventarioService.InventarioServiceClient(channel);
 
             var respuesta = await client.ObtenerTextoPlanoAsync(new SolicitudTextoPlano()); // Actualizado para usar tus nuevos mensajes
-            Console.WriteLine("Texto recibido: " + respuesta.Texto); // Actualizado para usar 'respuesta.Texto'
+            
 
             // Nuevo código para enviar un mensaje al sistema web cada 5 segundos indefinidamente
             while (true)
             {
                 var mensaje = new MensajeRequest { Mensaje = "Hola, sistema web!" };
                 var respuestaMensaje = await client.EnviarMensajeWebAsync(mensaje);
-                Console.WriteLine("Respuesta del sistema web: " + respuestaMensaje.Respuesta);
-
+            
                 // Esperar 5 segundos antes de enviar el próximo mensaje
                 await Task.Delay(5000);
             }
@@ -100,7 +99,7 @@ namespace Inventario
         }
         static List<Producto> ObtenerProductosDisponibles()
         {
-            var connectionString = "server=localhost;user=root;password=alumno;database=Inventario";
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
             var productosDisponibles = new List<Producto>();
 
             using (var connection = new MySqlConnection(connectionString))
@@ -150,7 +149,7 @@ namespace Inventario
             var categoria = Console.ReadLine();
             
 
-            var connectionString = "server=localhost;user=root;password=alumno;database=Inventario";
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
 
             using (var connection = new MySqlConnection(connectionString))
             {
@@ -196,7 +195,7 @@ namespace Inventario
                 return;
             }
 
-            var connectionString = "server=localhost;user=root;password=alumno;database=Inventario";
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
 
             using (var connection = new MySqlConnection(connectionString))
             {
@@ -224,7 +223,7 @@ namespace Inventario
     Console.WriteLine("Ingrese el nombre de la sucursal:");
     var nombre = Console.ReadLine();
 
-    var connectionString = "server=localhost;user=root;password=alumno;database=Inventario";
+    var connectionString = "server=localhost;user=root;password=;database=Inventario";
 
     using (var connection = new MySqlConnection(connectionString))
     {
@@ -259,7 +258,7 @@ namespace Inventario
             Console.WriteLine("Ingrese el nuevo nombre de la sucursal:");
             var nuevoNombre = Console.ReadLine();
 
-            var connectionString = "server=localhost;user=root;password=alumno;database=Inventario";
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
 
             using (var connection = new MySqlConnection(connectionString))
             {
@@ -286,7 +285,7 @@ namespace Inventario
         Console.WriteLine("Ingrese el nombre de la categoría:");
         var nombre = Console.ReadLine();
 
-        var connectionString = "server=localhost;user=root;password=alumno;database=Inventario";
+        var connectionString = "server=localhost;user=root;password=;database=Inventario";
 
         using (var connection = new MySqlConnection(connectionString))
         {
@@ -321,7 +320,7 @@ namespace Inventario
             Console.WriteLine("Ingrese el nuevo nombre de la categoría:");
             var nuevoNombre = Console.ReadLine();
 
-            var connectionString = "server=localhost;user=root;password=alumno;database=Inventario";
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
 
             using (var connection = new MySqlConnection(connectionString))
             {
@@ -355,7 +354,7 @@ namespace Inventario
                 return;
             }
 
-            var connectionString = "server=localhost;user=root;password=alumno;database=Inventario";
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
 
             using (var connection = new MySqlConnection(connectionString))
             {
@@ -396,7 +395,7 @@ namespace Inventario
             return;
         }
 
-        var connectionString = "server=localhost;user=root;password=alumno;database=Inventario";
+        var connectionString = "server=localhost;user=root;password=;database=Inventario";
 
         using (var connection = new MySqlConnection(connectionString))
         {
@@ -455,7 +454,7 @@ namespace Inventario
                 return;
             }
 
-            var connectionString = "server=localhost;user=root;password=alumno;database=Inventario";
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
 
             using (var connection = new MySqlConnection(connectionString))
             {
@@ -480,7 +479,7 @@ namespace Inventario
 
         static List<Producto> ObtenerProductosDeSucursal(int sucursalId)
         {
-            var connectionString = "server=localhost;user=root;password=alumno;database=Inventario";
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
             var productosEnSucursal = new List<Producto>();
 
             using (var connection = new MySqlConnection(connectionString))
@@ -544,7 +543,7 @@ namespace Inventario
                 return;
             }
 
-            var connectionString = "server=localhost;user=root;password=alumno;database=Inventario";
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
 
             using (var connection = new MySqlConnection(connectionString))
             {
@@ -580,7 +579,7 @@ namespace Inventario
             }
 
             // Muestra los productos y su stock en la sucursal seleccionada
-            var connectionString = "server=localhost;user=root;password=alumno;database=Inventario";
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
             using (var connection = new MySqlConnection(connectionString))
             {
                 connection.Open();
@@ -638,8 +637,8 @@ namespace Inventario
 
         static void GuardarCompra(IModel channel, Compra compra)
         {
-            var connectionString = "server=localhost;user=root;password=alumno;database=Inventario";
-            Console.WriteLine("eNTRA");
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
+            
 
             using (var connection = new MySqlConnection(connectionString))
             {
@@ -647,30 +646,46 @@ namespace Inventario
 
                 var query = "INSERT INTO venta (correlativo, fecha, total, Cajaid, Sucursalid) VALUES (@correl, @fecha, @total, @caja, @sucursal )";
 
+                var correlativo = new Random().Next(1000, 9999);
+
+                
+
                 using (var command = new MySqlCommand(query, connection))
                 {
-                    command.Parameters.AddWithValue("@correl", 2);
+                    command.Parameters.AddWithValue("@correl", correlativo);
+                    Console.WriteLine(correlativo);
                     command.Parameters.AddWithValue("@fecha", compra.Fecha);
+                  
                     command.Parameters.AddWithValue("@total", compra.Total);
-                    command.Parameters.AddWithValue("@caja", 1);
+                   
+                    command.Parameters.AddWithValue("@caja", compra.NumeroCaja);
+                    
                     command.Parameters.AddWithValue("@sucursal", compra.Sucursal);
+                    
                     command.ExecuteNonQuery();
 
                     Console.WriteLine("Venta agregada correctamente.");
                 }
-
+               
+                   
 
                 foreach (var producto in compra.Productos)
                 {
-                    int idProd = ObtenerIdProducto(producto.Key);
+                    Console.WriteLine(producto.Value.Producto.Nombre);
+
+                    int idProd = ObtenerIdProducto(producto.Value.Producto.Nombre);
+
 
                     var detalleQuery = "INSERT INTO detalle (VentaId, Productoid, Cantidad) VALUES (LAST_INSERT_ID(), @producto, @cantidad)";
+
+                    
                     
                     using (var detalleCommand = new MySqlCommand(detalleQuery, connection))
                     {
                         detalleCommand.Parameters.AddWithValue("@producto", idProd);
-                        detalleCommand.Parameters.AddWithValue("@cantidad", producto.Value);
+                        detalleCommand.Parameters.AddWithValue("@cantidad", producto.Value.Cantidad);
                         detalleCommand.ExecuteNonQuery();
+
                     }
                 }
 
@@ -682,7 +697,7 @@ namespace Inventario
         
        static int ObtenerIdProducto(string nombreProducto)
         {
-            var connectionString = "server=localhost;user=root;password=alumno;database=Inventario";
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
             using (var connection = new MySqlConnection(connectionString))
             {
                 connection.Open();
@@ -809,9 +824,16 @@ namespace Inventario
 }
 
 class Compra
-{
-    public string Sucursal { get; set; }
-    public DateTime Fecha { get; set; }
-    public Dictionary<string, int> Productos { get; set; }
-     public int Total { get; set; }
-}
+    {
+        public int NumeroCaja { get; set; }
+        public int Sucursal { get; set; }
+        public Dictionary<string, ProductoCantidad> Productos { get; set; }
+        public int Total { get; set; }
+        public DateTime Fecha { get; set; }
+    }
+
+ class ProductoCantidad
+    {
+        public Producto Producto { get; set; }
+        public int Cantidad { get; set; }
+    }
