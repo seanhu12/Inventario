@@ -17,7 +17,16 @@ namespace Inventario
 {
     class Program
     {
-            static async Task Main(string[] args)
+        static async Task Main(string[] args)
+        {
+            // Ejecuta RabbitMQ y gRPC en tareas separadas.
+            var rabbitMqTask = Task.Run(() => RunRabbitMq());
+            var gRpcTask = Task.Run(() => gRPC());
+            // Espera a que ambas tareas se completen.
+            await Task.WhenAll(rabbitMqTask, gRpcTask);
+        }
+
+        static void RunRabbitMq()
         {
             var factory = new ConnectionFactory() { HostName = "localhost" }; // Cambia el valor si RabbitMQ no se encuentra en localhost
             using (var connection = factory.CreateConnection())
@@ -51,31 +60,130 @@ namespace Inventario
                                                 consumer: productosSeleccionadosConsumer);
 
                 MostrarMenu(channel);
-            }
-
-    // Llama a la función gRPC al final para que no bloquee el resto del código
-    await gRPC();
+        }
+       
+    
 }
+        
         static async Task gRPC()
         {
-            // The port number must match the port of the gRPC server.
-            using var channel = GrpcChannel.ForAddress("http://localhost:5138"); // Asegúrate de que este puerto coincide con el del servidor gRPC
-            var client = new InventarioService.InventarioServiceClient(channel);
+              // The port number must match the port of the gRPC server.
+                using var channel = GrpcChannel.ForAddress("http://localhost:5138"); // Asegúrate de que este puerto coincide con el del servidor gRPC
+                var client = new InventarioService.InventarioServiceClient(channel);
 
-            var respuesta = await client.ObtenerTextoPlanoAsync(new SolicitudTextoPlano()); // Actualizado para usar tus nuevos mensajes
-            
+                var respuesta = await client.ObtenerTextoPlanoAsync(new SolicitudTextoPlano()); // Actualizado para usar tus nuevos mensajes
+                
 
-            // Nuevo código para enviar un mensaje al sistema web cada 5 segundos indefinidamente
-            while (true)
-            {
-                var mensaje = new MensajeRequest { Mensaje = "Hola, sistema web!" };
-                var respuestaMensaje = await client.EnviarMensajeWebAsync(mensaje);
-            
-                // Esperar 5 segundos antes de enviar el próximo mensaje
-                await Task.Delay(5000);
-            }
+                // Nuevo código para enviar un mensaje al sistema web cada 5 segundos indefinidamente
+                while (true)
+                {
+                    var ventasPorSucursalJson = ObtenerProductosVendidosPorSucursal();
+                    var ventasPorCategoriaJson = ObtenerVentasPorCategoria();
+
+                    var mensajeTotal = new Dictionary<string, string>
+                    {
+                        { "ventasPorSucursal", ventasPorSucursalJson },
+                        { "ventasPorCategoria", ventasPorCategoriaJson }
+                    };
+
+                    var mensaje = new MensajeRequest { Mensaje = JsonConvert.SerializeObject(mensajeTotal) };
+                    var respuestaMensaje = await client.EnviarMensajeWebAsync(mensaje);
+
+                    // Esperar 5 segundos antes de enviar el próximo mensaje
+                    await Task.Delay(5000);
+                }
         }
 
+        static string ObtenerProductosVendidosPorSucursal()
+            {
+                // Crear la consulta SQL
+                string query = @"
+                    SELECT Sucursal.nombre AS 'sucursal', Producto.nombre AS 'producto', SUM(Detalle.cantidad) AS 'cantidad'
+                    FROM Venta
+                    INNER JOIN Sucursal ON Venta.Sucursalid = Sucursal.id
+                    INNER JOIN Detalle ON Venta.id = Detalle.Ventaid
+                    INNER JOIN Producto ON Detalle.Productoid = Producto.id
+                    GROUP BY Sucursal.nombre, Producto.nombre;
+                ";
+
+                var results = new List<Dictionary<string, object>>();
+
+                var connectionString = "server=localhost;user=root;password=;database=Inventario";
+                // Establecer la conexión
+                using (var connection = new MySqlConnection(connectionString))
+                {
+                    connection.Open();
+
+                    // Ejecutar la consulta
+                    using (var command = new MySqlCommand(query, connection))
+                    {
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                var row = new Dictionary<string, object>
+                                {
+                                    { "sucursal", reader.GetString("sucursal") },
+                                    { "producto", reader.GetString("producto") },
+                                    { "cantidad", reader.GetInt32("cantidad") },
+                                };
+                                results.Add(row);
+                            }
+                        }
+                    }
+                }
+
+                // Convertir los resultados a un string JSON
+                string jsonString = JsonConvert.SerializeObject(results);
+
+                // Devolver el string JSON
+                return jsonString;
+            }
+       
+        static string ObtenerVentasPorCategoria()
+        {
+            // Crear la consulta SQL
+            string query = @"
+                SELECT Categoria.nombre AS 'categoria', SUM(Detalle.cantidad) AS 'cantidad'
+                FROM Venta
+                INNER JOIN Detalle ON Venta.id = Detalle.Ventaid
+                INNER JOIN Producto ON Detalle.Productoid = Producto.id
+                INNER JOIN Categoria ON Producto.Categoriaid = Categoria.id
+                GROUP BY Categoria.nombre;
+            ";
+
+            var results = new List<Dictionary<string, object>>();
+
+            var connectionString = "server=localhost;user=root;password=;database=Inventario";
+            // Establecer la conexión
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+
+                // Ejecutar la consulta
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var row = new Dictionary<string, object>
+                            {
+                                { "categoria", reader.GetString("categoria") },
+                                { "cantidad", reader.GetInt32("cantidad") },
+                            };
+                            results.Add(row);
+                        }
+                    }
+                }
+            }
+
+            // Convertir los resultados a un string JSON
+            string jsonString = JsonConvert.SerializeObject(results);
+
+            // Devolver el string JSON
+            return jsonString;
+        }
 
         static void EnviarProductosDisponibles(IModel channel)
         {
