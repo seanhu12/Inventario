@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+option csharp_namespace = "Inventario";
+
+package inventario;
+
+// El servicio de inventario.
+service InventarioService {
+  rpc ObtenerTextoPlano (SolicitudTextoPlano) returns (RespuestaTextoPlano);
+  rpc EnviarMensajeWeb (MensajeRequest) returns (MensajeResponse);
+}
+
+// Mensaje para solicitar texto plano
+message SolicitudTextoPlano {
+  // Podrías agregar campos aquí si necesitas enviar información con la solicitud.
+}
+
+// Mensaje para la respuesta con texto plano
+message RespuestaTextoPlano {
+  string texto = 1;
+}
+
+// Mensaje para enviar un mensaje al sistema web
+message MensajeRequest {
+  string mensaje = 1;
+}
+
+// Mensaje para la respuesta del sistema web
+message MensajeResponse {
+  string respuesta = 1;
+}

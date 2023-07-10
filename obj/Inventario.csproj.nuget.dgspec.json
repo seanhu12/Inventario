@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\sebax\\Desktop\\Nueva carpeta\\Inventario\\Inventario.csproj": {}
+    "C:\\Users\\choch\\OneDrive\\Documentos\\Informatica\\Cuarto año\\Septimo semestre\\Proyecto desarrollo de soluciones\\Proyecto2\\Inventario\\Inventario.csproj": {}
   },
   "projects": {
-    "C:\\Users\\sebax\\Desktop\\Nueva carpeta\\Inventario\\Inventario.csproj": {
+    "C:\\Users\\choch\\OneDrive\\Documentos\\Informatica\\Cuarto año\\Septimo semestre\\Proyecto desarrollo de soluciones\\Proyecto2\\Inventario\\Inventario.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\sebax\\Desktop\\Nueva carpeta\\Inventario\\Inventario.csproj",
+        "projectUniqueName": "C:\\Users\\choch\\OneDrive\\Documentos\\Informatica\\Cuarto año\\Septimo semestre\\Proyecto desarrollo de soluciones\\Proyecto2\\Inventario\\Inventario.csproj",
         "projectName": "Inventario",
-        "projectPath": "C:\\Users\\sebax\\Desktop\\Nueva carpeta\\Inventario\\Inventario.csproj",
-        "packagesPath": "C:\\Users\\sebax\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\sebax\\Desktop\\Nueva carpeta\\Inventario\\obj\\",
+        "projectPath": "C:\\Users\\choch\\OneDrive\\Documentos\\Informatica\\Cuarto año\\Septimo semestre\\Proyecto desarrollo de soluciones\\Proyecto2\\Inventario\\Inventario.csproj",
+        "packagesPath": "C:\\Users\\choch\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\choch\\OneDrive\\Documentos\\Informatica\\Cuarto año\\Septimo semestre\\Proyecto desarrollo de soluciones\\Proyecto2\\Inventario\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\sebax\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\choch\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -40,6 +40,20 @@
         "net7.0": {
           "targetAlias": "net7.0",
           "dependencies": {
+            "Google.Protobuf": {
+              "target": "Package",
+              "version": "[3.23.4, )"
+            },
+            "Grpc.Net.Client": {
+              "target": "Package",
+              "version": "[2.55.0, )"
+            },
+            "Grpc.Tools": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.56.0, )"
+            },
             "Microsoft.EntityFrameworkCore": {
               "target": "Package",
               "version": "[7.0.8, )"
@@ -85,7 +99,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.305\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.304\\RuntimeIdentifierGraph.json"
         }
       }
     }
