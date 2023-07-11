@@ -90,7 +90,7 @@ namespace Inventario
                     var respuestaMensaje = await client.EnviarMensajeWebAsync(mensaje);
 
                     // Esperar 5 segundos antes de enviar el próximo mensaje
-                    await Task.Delay(5000);
+                    await Task.Delay(1000);
                 }
         }
 
@@ -772,7 +772,7 @@ namespace Inventario
                     
                     command.ExecuteNonQuery();
 
-                    Console.WriteLine("Venta agregada correctamente.");
+                    
                 }
                
                    
@@ -797,7 +797,7 @@ namespace Inventario
                     }
                 }
 
-                Console.WriteLine("Productos de la venta agregados correctamente.");
+                
             }
 
             // Aquí puedes llamar a cualquier función que necesites ejecutar después de guardar la compra.
